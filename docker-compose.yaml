@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  amnezia-vpn:
+    image: amnezia/vpn
+    container_name: amnezia-vpn
+    restart: unless-stopped
+    ports:
+      - "443:443" # Assuming over-cloak runs on 443, please verify and change if necessary.
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    command: /bin/sh -c "export SERVER_IP=$(dig +short ${VPN_DOMAIN:-vpn.example.com}) && exec /init" # This assumes dig and an entrypoint script at /init are available in the image
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.amnezia.rule=Host(`${VPN_DOMAIN:-vpn.example.com}`)"
+      - "traefik.http.routers.amnezia.entrypoints=websecure"
+      - "traefik.http.routers.amnezia.tls.certresolver=myresolver"
+      - "traefik.http.services.amnezia.loadbalancer.server.port=443"
+    networks:
+      - amnezia-network
+
+networks:
+  amnezia-network:
+    name: ${NETWORK_NAME:-amnezia-network}
+    external: ${NETWORK_EXTERNAL:-true}
